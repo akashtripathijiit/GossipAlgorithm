@@ -5,8 +5,8 @@ import scala.concurrent.duration._
 import akka.dispatch.Foreach
 //import system.dispatcher
 
-  sealed trait GossipPushSum
-  case object Intitiate extends GossipPushSum
+sealed trait GossipPushSum
+case object Intitiate extends GossipPushSum
 
 object gossipAlgo {
 
@@ -31,7 +31,7 @@ class Master(numOfWorkers: Int, topology: String, typeOfAlgorithm: String) exten
      val system = context.system
      
      
-     var deadNodes:List[Int] = List.empty
+     //var deadNodes:List[Int] = List.empty
      var timeStart:Long = 0;
     
      // CREATING WORKERS HERE AS PER REQUIRED ALGORITHM
@@ -43,8 +43,10 @@ class Master(numOfWorkers: Int, topology: String, typeOfAlgorithm: String) exten
      }  
      else if (typeOfAlgorithm == "gossip")
      {	
+       //println("No of workers = " + numOfWorkers)
     	 for( i <- 0 until numOfWorkers )
     		 worker =  context.system.actorOf(Props(new GossipWorker(numOfWorkers, topology)), "" + i.toString)
+    	//println("workers created")
      }
      //Thread.sleep(100);
      
@@ -94,8 +96,9 @@ class Master(numOfWorkers: Int, topology: String, typeOfAlgorithm: String) exten
   var numberOfNeighbors : Int = _
   var schedulerHolder:Cancellable = null;
   
-  //temporary variables for testing
-  var gossipSent : Int = _
+  var root : Int = _
+  
+  
   
   override def preStart()
   {
@@ -129,10 +132,16 @@ class Master(numOfWorkers: Int, topology: String, typeOfAlgorithm: String) exten
 	 }
 	else if(topology == "line")
 	{
-	  setLineTopology()
-	  
+	  setLineTopology()  
 	}
-	
+	else if(topology == "2d")
+	{
+	  set2dTopology()
+	}
+	else if(topology == "imp2d")
+	{
+	  setimp2dTopology()
+	}
   }
   
   def setLineTopology()
@@ -172,6 +181,166 @@ class Master(numOfWorkers: Int, topology: String, typeOfAlgorithm: String) exten
 	 // print(n + "/")
 	//println()
 	  }
+  }
+  
+  def set2dTopology()
+  {
+	  var selfIndex : Int = activeWorkers.indexOf(selfWorkerNumber)
+	  root =  math.ceil(Math.sqrt(activeWorkers.length.toDouble)).toInt
+		//println("root = " + root)					
+	  numberOfNeighbors = 0
+	 
+	var upActor: Int = -1
+	var downActor: Int = -1
+	var leftActor: Int = -1
+	var rightActor: Int = -1
+	
+	/*if(!neighbors.isEmpty) {
+		neighbors = null
+	}
+    */
+	if(selfIndex - root >= 0) {
+								
+		upActor = activeWorkers(selfIndex - root)
+		numberOfNeighbors += 1
+	}
+								
+	if(selfIndex + root < activeWorkers.length) {
+								  
+		downActor = activeWorkers(selfIndex + root)
+		numberOfNeighbors += 1
+	}
+								
+	if(selfIndex % root != 0) {
+								  
+		leftActor = activeWorkers(selfIndex - 1)
+		numberOfNeighbors += 1
+	}
+								
+	if(selfIndex % root != root - 1 && selfIndex != activeWorkers.length - 1) {
+								  
+		rightActor = activeWorkers(selfIndex + 1)
+		numberOfNeighbors += 1
+	}
+	
+	//println("number of neigbors = " + numberOfNeighbors)
+	
+	neighbors = new Array[Int](numberOfNeighbors)
+	var iCounter : Int = 0
+	
+	if(upActor != -1) 
+	{	neighbors(iCounter) = upActor
+		iCounter +=1
+	}						 
+	if(downActor != -1) 
+	{	neighbors(iCounter) = downActor
+		iCounter +=1
+	}						
+	if(leftActor != -1) 
+	{	neighbors(iCounter) = leftActor
+		iCounter +=1
+	}						
+	if(rightActor != -1) 
+	{	neighbors(iCounter) = rightActor
+		iCounter +=1
+	}
+	
+	
+//	if(self.path.name.toInt == 7)
+//	{	println("+" + self.path.name + "+")
+//		for(n <- neighbors)
+//		{
+//			print(n+",")
+//		}
+//		println("")
+//	}
+  }
+  
+  def setimp2dTopology()
+  {
+    var selfIndex : Int = activeWorkers.indexOf(selfWorkerNumber)
+	  root =  math.ceil(Math.sqrt(activeWorkers.length.toDouble)).toInt
+		//println("root = " + root)					
+	  numberOfNeighbors = 0
+	 
+	var upActor: Int = -1
+	var downActor: Int = -1
+	var leftActor: Int = -1
+	var rightActor: Int = -1
+	var randomActor : Int = -1
+	/*if(!neighbors.isEmpty) {
+		neighbors = null
+	}
+    */
+	if(selfIndex - root >= 0) {
+								
+		upActor = activeWorkers(selfIndex - root)
+		numberOfNeighbors += 1
+	}
+								
+	if(selfIndex + root < activeWorkers.length) {
+								  
+		downActor = activeWorkers(selfIndex + root)
+		numberOfNeighbors += 1
+	}
+								
+	if(selfIndex % root != 0) {
+								  
+		leftActor = activeWorkers(selfIndex - 1)
+		numberOfNeighbors += 1
+	}
+								
+	if(selfIndex % root != root - 1 && selfIndex != activeWorkers.length - 1) {
+								  
+		rightActor = activeWorkers(selfIndex + 1)
+		numberOfNeighbors += 1
+	}
+	
+	if(activeWorkers.length > 3)
+	{  numberOfNeighbors += 1 
+	}
+	//println("number of neigbors = " + numberOfNeighbors)
+	
+	neighbors = new Array[Int](numberOfNeighbors)
+	var iCounter : Int = 0
+	
+	if(upActor > -1) 
+	{	neighbors(iCounter) = upActor
+		iCounter +=1
+	}						 
+	if(downActor > -1) 
+	{	neighbors(iCounter) = downActor
+		iCounter +=1
+	}						
+	if(leftActor > -1) 
+	{	neighbors(iCounter) = leftActor
+		iCounter >1
+	}						
+	if(rightActor > -1) 
+	{	neighbors(iCounter) = rightActor
+		iCounter +=1
+	}
+	if(activeWorkers.length > 3)
+	{
+	  randomActor = selectRandomNumber(activeWorkers.length)
+	  while(neighbors.contains(randomActor) || randomActor == selfIndex)
+		  randomActor = selectRandomNumber(activeWorkers.length)
+	  neighbors(iCounter) = randomActor
+	}
+	if(self.path.name.toInt == 14)
+	{	println("+" + self.path.name + "+")
+		for(n <- neighbors)
+		{
+			print(n+",")
+		}
+		println("")
+	}
+  }
+  
+  def selectRandomNumber(range : Int) : Int =
+  {
+	  var random : Int = (math.floor((math.random * range)).toInt)
+	  random
   }
   
   def receive = {
@@ -225,34 +394,56 @@ class Master(numOfWorkers: Int, topology: String, typeOfAlgorithm: String) exten
          i +=1
       }
     }
+    if(activeWorkers.contains(nameOfActor.toInt))
+    	removeFromActiveList(nameOfActor)
+    else
+    {}  //println("Not Found")
     neighbors = newNeighbors
     if(neighbors.length == 0)
     {
       //println(selfWorkerNumber + " Out of neighbors")
     }
     
-    if((topology != "full") && (numberOfNeighbors == 0))
+    if((topology != "full"))
     {
-    	if(topology == "line")
+    	
+    	if((numberOfNeighbors == 0))
     	{
-    	  var newActiveWorkers = new Array[Int](activeWorkers.length-1)
-    	  for(n <- activeWorkers)
-    	  {
-    		  if(nameOfActor != n.toString)
-    		  { 
-    			  newActiveWorkers(i) = n
-    					  i +=1
-    		  }
-    	  }
-    	  activeWorkers = newActiveWorkers
-    	  setLineTopology()
-    	}  
+    	  
+	    	if(topology == "line")
+	    	{
+	    	  setLineTopology()
+	    	}
+	    	else if(topology == "2d")
+	    	{
+	    	  set2dTopology()
+	    	}
+	    	else if(topology == "imp2d")
+	    	{
+	    	  setimp2dTopology()
+	    	}
+    	}
     }
 //    print(self.path.name + "->")
 //    for(n <- neighbors)
 //    	print(n + ",")
 //    println()
     
+  }
+  
+  def removeFromActiveList(nameOfActor : String)
+  {
+    var newActiveWorkers = new Array[Int](activeWorkers.length-1)
+    var i : Int = 0
+    	for(n <- activeWorkers)
+    	{
+    	  if(nameOfActor != n.toString)
+    	  { 
+    		  newActiveWorkers(i) = n
+    				  i +=1
+    	  }
+    	}
+    	activeWorkers = newActiveWorkers
   }
   
   def selectRandomWorker() : ActorSelection = 
